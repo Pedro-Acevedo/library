@@ -1,6 +1,6 @@
 const { render } = require('ejs')
 const express = require('express')
-const author = require('../models/author')
+const book = require('../models/book')
 const router = express.Router()
 const Author = require('../models/author')
 //get all authors
@@ -22,7 +22,7 @@ router.get('/', async (req, res) =>{
 })
 
 // new author
-router.get('/new', (req, res) =>{
+router.get('/new',(req, res) =>{
     res.render('authors/new', { author: new Author() })
 })
 
