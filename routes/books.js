@@ -3,18 +3,10 @@ const express = require('express')
 const Author = require('../models/author')
 const router = express.Router()
 const Book = require('../models/book')
-const multer = require('multer')
-const path = require('path')
-const fs = require('fs')
 const { query } = require('express')
-const uploadPath = path.join('public', Book.coverImageBasePath)
+const { json } = require('body-parser')
 const imageMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg']
-const upload = multer({
-    dest: uploadPath,
-    fileFilter: (req, file, callback) =>{
-        callback(null, imageMimeTypes.includes(file.mimetype))
-    }
-})
+
 //get all books
 router.get('/', async (req, res) =>{
     let query = Book.find()
@@ -44,32 +36,36 @@ router.get('/new', async (req, res) =>{
 })
 
 // Create book route
-router.post('/', upload.single('cover'), async (req, res) => {
-    const fileName = req.file != null ? req.file.filename : null 
+router.post('/', async (req, res) => {
     const book = new Book({
         title: req.body.title,
         author: req.body.author.trim(),
         publishDate: new Date(req.body.publishDate),
         pageCount: req.body.pageCount,
-        coverImage: fileName,
         description: req.body.description
     })
+
+     saveCover(book, req.body.cover)
 
     try{
         const newBook = await book.save()
         // res.redirect(`books/${newBook.id}`)
         res.redirect('books')
     } catch {
-        if( book.coverImage != null) {removeBookCover(book.coverImage)}
         renderNewPage(res, book, true)  
     }
 })
 
-function removeBookCover (fileName){
-    fs.unlink(path.join(uploadPath, fileName), err =>{
-        if (err) console.error(err);
-    })
+function saveCover(book, coverEncoded) {
+    if( coverEncoded == null ) return
+    const cover = JSON.parse(coverEncoded)
+    if(cover != null && imageMimeTypes.includes(cover.type)){
+        book.coverImage = new Buffer.from( cover.data, 'base64' )
+        book.coverImageType = cover.type
+    }
 }
+
+
 async function renderNewPage(res, book, hasError=false){
     try{
         const authors = await Author.find({})
